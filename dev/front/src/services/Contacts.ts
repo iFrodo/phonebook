@@ -6,16 +6,16 @@ const getAll = () => {
     return request.then(response => response.data)
 }
 
-const create = newObject => {
+const create = (newObject: any) => {
     const request = axios.post(baseUrl, newObject)
     return request.then(response => response.data)
 }
 
-const update = (id, newObject) => {
+const update = (id: any, newObject: any) => {
     const request = axios.put(`${baseUrl}/${id}`, newObject)
     return request.then(response => response.data)
 }
-const remove = (id) => {
+const remove = (id: any) => {
     const request = axios.delete(`${baseUrl}/${id}`)
     return request.then(response => response.data)
 }
