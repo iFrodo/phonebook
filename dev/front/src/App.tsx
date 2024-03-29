@@ -58,7 +58,7 @@ const AddNewPerson = (props: any) => {
 const Persons = (props: any) => {
   return (
     <>
-      {props.filteredPersons.map((person: any) => <p className='person' key={person.id}>{person.name} {person.number} <button onClick={() => { props.onDeleteBtnClick(person) }}>delete</button></p>)}
+      {props.filteredPersons.map((person: any) => <p className='person' key={person._id}>{person.name} {person.number} <button onClick={() => { props.onDeleteBtnClick(person) }}>delete</button></p>)}
     </>
   )
 }
@@ -75,6 +75,7 @@ const App = () => {
     contactsService.getAll()
       .then(response => {
         setPersons(response)
+        console.log(persons)
       })
   }, [])
   if (!persons) {
@@ -161,7 +162,7 @@ const App = () => {
           <div className='addnew'>
             <h2>add a new</h2>
             <AddNewPerson newName={newName} onChangeName={onChangeName} newPhone={newPhone} onChangePhone={onChangePhone} message={message} />
-      
+
           </div>
         </form>
       </div>
