@@ -76,7 +76,6 @@ app.post('/api/persons/', async (req, res) => {
         res.status(500).end();
     }
 });
-
 app.get('/api/persons/:id', async (req, res) => {
     try {
         const person = await Person.findById(req.params.id);
@@ -90,17 +89,38 @@ app.get('/api/persons/:id', async (req, res) => {
         res.status(500).end();
     }
 });
+app.put('/api/persons/:id', async (req, res) => {
+    try {
+        const updatedPerson = await Person.findByIdAndUpdate(
+            req.params.id,
+            { name: req.body.name, number: req.body.number },
+            { new: true } // This option returns the updated document
+        );
 
+        if (updatedPerson) {
+            res.json(updatedPerson);
+        } else {
+            res.status(404).send({ error: 'Person not found' });
+        }
+    } catch (error) {
+        console.error('Error updating person:', error);
+        res.status(500).end();
+    }
+});
 app.delete('/api/persons/:id', async (req, res) => {
     try {
-        await Person.findByIdAndRemove(req.params.id);
-        res.status(204).end();
+        const person = await Person.findById(req.params.id);
+        if (person) {
+            await Person.findByIdAndDelete(req.params.id);
+            res.status(204).end();
+        } else {
+            res.status(404).send({ error: 'unknown endpoint' });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).end();
     }
 });
-
 const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' });
 };

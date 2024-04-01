@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import contactsService from './services/Contacts.js'
 interface IPerson {
-  id: Number,
+  _id: Number,
   name: String,
   number: Number
 }
@@ -70,12 +70,12 @@ const App = () => {
   const [filter, setFilter] = useState('true')
   const [message, setMessage] = useState<IMessage | null>(null);
   console.log(filter);
+  
 
   useEffect(() => {
     contactsService.getAll()
       .then(response => {
         setPersons(response)
-        console.log(persons)
       })
   }, [])
   if (!persons) {
@@ -90,8 +90,8 @@ const App = () => {
     const isDuplicate = persons.find(person => person.name === newName)
     if (isDuplicate) {
       if (window.confirm(`${newName} is already added to phonebook,do you want to change number`)) {
-        contactsService.update(isDuplicate.id, newPerson)
-          .then(updatedPerson => setPersons(persons.map(person => person.id !== isDuplicate.id ? person : updatedPerson)))
+        contactsService.update(isDuplicate._id, newPerson)
+          .then(updatedPerson => setPersons(persons.map(person => person._id !== isDuplicate._id ? person : updatedPerson)))
 
         setMessage({ id: 1, message: isDuplicate.name })
         setTimeout(() => {
@@ -124,12 +124,14 @@ const App = () => {
   };
 
   const onDeleteBtnClickOf = (note: any) => {
+    console.log(`${note._id}`)
     if (window.confirm(`Do you really want to delete ${note.name}?`)) {
-      contactsService.remove(note.id)
+      contactsService.remove(note._id)
+
         .then(remoovedPerson => {
           console.log(remoovedPerson);
 
-          setPersons(persons.filter(person => person.id != note.id));
+          setPersons(persons.filter(person => person._id != note._id));
           setMessage({ id: 3, message: note.name });
           setTimeout(() => {
             setMessage(null);
