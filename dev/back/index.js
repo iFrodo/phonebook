@@ -1,25 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const Person = require('./models/Person.ts')
 
-if (process.argv.length < 3) {
-    console.log('give password as argument');
-    process.exit(1);
-}
-
-const password = process.argv[2];
-const url = `mongodb+srv://cbojio432:${password}@fullstack.fd7x33p.mongodb.net/`;
-mongoose.set('strictQuery', false);
-mongoose.connect(url);
-
-const personSchema = new mongoose.Schema({
-    id: Number,
-    name: String,
-    number: String
-});
-
-const Person = mongoose.model('Person', personSchema);
 const app = express();
 
 app.use(express.json());
@@ -29,35 +12,38 @@ app.use(morgan(function (tokens, req, res) {
     return (JSON.stringify(req.body)); // added for displaying POST data
 }));
 
-app.get('/api/persons/', async (req, res) => {
+app.get('/api/persons/', async (req, res, next) => {
     try {
-        const persons = await Person.find({});
+        const persons = await Person.find({}).then();
         res.json(persons);
     } catch (error) {
+        next(error)
         console.error(error);
         res.status(500).end();
     }
 });
 
-app.get('/api/persons/info', async (req, res) => {
+app.get('/api/persons/info', async (req, res, next) => {
     try {
         const count = await Person.countDocuments({});
         res.send(`Phonebook has info for ${count} people <p>${new Date()}</p>`);
     } catch (error) {
+        next(error)
         console.error(error);
-        res.status(500).end();
+
     }
 });
 
-app.post('/api/persons/', async (req, res) => {
+app.post('/api/persons/', async (req, res, next) => {
     try {
-        if (!req.body.name || !req.body.number) {
+        if (!req.body.name || !req.body.number || req.body.name.length < 3) {
             return res.status(400).json({
-                error: 'content missing, must be {name:"default",number:"***"}'
+                error: 'content missing, must be {name:"length > 3 ",number:"length > 3 "}'
             });
         }
 
         const existingPerson = await Person.findOne({ name: req.body.name });
+
         if (existingPerson) {
             return res.status(409).json({
                 error: 'name must be unique'
@@ -72,11 +58,10 @@ app.post('/api/persons/', async (req, res) => {
         const savedPerson = await person.save();
         res.json(savedPerson);
     } catch (error) {
-        console.error(error);
-        res.status(500).end();
+        next(error)
     }
 });
-app.get('/api/persons/:id', async (req, res) => {
+app.get('/api/persons/:id', async (req, res, next) => {
     try {
         const person = await Person.findById(req.params.id);
         if (person) {
@@ -85,16 +70,16 @@ app.get('/api/persons/:id', async (req, res) => {
             res.status(404).end();
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).end();
+        next(error)
     }
 });
-app.put('/api/persons/:id', async (req, res) => {
+app.put('/api/persons/:id', async (req, res, next) => {
+    const { name, number } = req.body
     try {
         const updatedPerson = await Person.findByIdAndUpdate(
             req.params.id,
-            { name: req.body.name, number: req.body.number },
-            { new: true } // This option returns the updated document
+            { name, number },
+            { new: true, runValidators: true, context: 'query' }
         );
 
         if (updatedPerson) {
@@ -103,11 +88,11 @@ app.put('/api/persons/:id', async (req, res) => {
             res.status(404).send({ error: 'Person not found' });
         }
     } catch (error) {
-        console.error('Error updating person:', error);
-        res.status(500).end();
+        next(error)
+
     }
 });
-app.delete('/api/persons/:id', async (req, res) => {
+app.delete('/api/persons/:id', async (req, res, next) => {
     try {
         const person = await Person.findById(req.params.id);
         if (person) {
@@ -117,16 +102,28 @@ app.delete('/api/persons/:id', async (req, res) => {
             res.status(404).send({ error: 'unknown endpoint' });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).end();
+        next(error)
     }
 });
-const unknownEndpoint = (request, response) => {
-    response.status(404).send({ error: 'unknown endpoint' });
-};
+// const unknownEndpoint = (request, response) => {
+//     response.status(404).send({ error: 'unknown endpoint' });
+// };
+// app.use(unknownEndpoint);
 
-app.use(unknownEndpoint);
+// this has to be the last loaded middleware, also all the routes should be registered before this!
+const errorHandler = (error, request, response, next) => {
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' })
+    }
+    else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message })
+    } else if (error) {
+        return response.status(400).json({ error: `шото поломалось,${error.message}` })
+    }
 
+    next(error)
+}
+app.use(errorHandler)
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
